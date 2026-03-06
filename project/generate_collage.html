@@ -1,0 +1,804 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>电影便签拼贴生成器</title>
+  <style>
+    :root {
+      --bg: #f5efe6;
+      --panel: #ffffff;
+      --accent: #8a5a44;
+      --text: #2e241c;
+      --muted: #8b7d6b;
+    }
+    * { box-sizing: border-box; }
+    
+    /* 新增头部导航样式 */
+    .header-nav {
+      position: fixed; top: 0; left: 0; right: 0; height: 64px;
+      background: rgba(255, 255, 255, 0.7); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+      border-bottom: 1px solid #fce7f3; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); z-index: 50;
+      display: flex; align-items: center; justify-content: space-between; padding: 0 24px;
+      font-family: inherit;
+    }
+    @media (min-width: 768px) { .header-nav { padding: 0 48px; } }
+    .header-logo { font-size: 24px; font-weight: 800; color: #ec4899; text-decoration: none; letter-spacing: 0.05em; text-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: color 0.3s; }
+    .header-logo:hover { color: #db2777; }
+    @media (max-width: 768px) { .header-logo { display: none; } .header-nav { justify-content: flex-end; } }
+    .header-links { display: flex; align-items: center; gap: 24px; }
+    @media (min-width: 768px) { .header-links { gap: 32px; } }
+    .header-links a { color: #4b5563; font-weight: 700; text-decoration: none; transition: all 0.2s; font-size: 16px; }
+    .header-links a:hover { color: #ec4899; }
+    .header-links a:active { transform: scale(0.95); }
+
+    body {
+      margin: 0;
+      padding: 82px 18px 18px 18px;
+      background: radial-gradient(circle at 20% 20%, #fdf7ee 0, #f2e7db 50%, #e7d8c5 100%);
+      color: var(--text);
+      font-family: "Microsoft YaHei", "Segoe UI", system-ui, -apple-system, sans-serif;
+      display: flex;
+      gap: 18px;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .panel {
+      width: 360px;
+      flex: 0 0 360px;
+      min-width: 320px;
+      background: var(--panel);
+      border-radius: 14px;
+      box-shadow: 0 10px 35px rgba(0,0,0,0.08);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      height: calc(100vh - 100px);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scroll-behavior: smooth;
+      
+    }
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: 0.4px;
+    }
+    label { font-weight: 600; font-size: 13px; }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid #d8cfc4;
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 13px;
+      resize: vertical;
+      font-family: "Microsoft YaHei", "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+    .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .controls .radio { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+    .controls .radio input { accent-color: var(--accent); }
+    .controls .spacer { flex: 1; }
+    .value { font-size: 12px; color: var(--muted); }
+    button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+      transition: transform 120ms ease, box-shadow 120ms ease;
+    }
+    button:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(0,0,0,0.16); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+    input[type="file"] { font-size: 13px; }
+    .file-picker { display: flex; align-items: center; gap: 8px; width: 100%; }
+    .file-hidden { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
+    .file-button { background: var(--accent); color: #fff; border: none; padding: 9px 12px; border-radius: 10px; font-weight: 600; cursor: pointer; box-shadow: 0 6px 16px rgba(0,0,0,0.12); }
+    .file-name {
+      font-size: 12px;
+      color: var(--muted);
+      word-break: break-all;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+      line-clamp: 3;
+      overflow: hidden;
+      line-height: 1.4;
+      flex: 1;
+    }
+    .log {
+      border: 1px solid #e1d4c7;
+      border-radius: 10px;
+      background: #fdfaf7;
+      padding: 10px;
+      min-height: calc(1.4em * 3 + 10px);
+      max-height: 260px;
+      width: 100%;
+      overflow: auto;
+      resize: vertical;
+      font-size: 12px;
+      color: var(--muted);
+      white-space: pre-wrap;
+      line-height: 1.4;
+      word-break: break-word;
+      font-family: "Microsoft YaHei", "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+    @media (min-width: 1400px) {
+      .panel { width: 540px; flex-basis: 540px; }
+    }
+    .footer {
+      margin-top: auto;
+      padding-top: 10px;
+      border-top: 1px dashed rgba(0,0,0,0.08);
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .canvas-wrap {
+      flex: 1;
+      border-radius: 16px;
+      background: #d9c9b7;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.35), 0 14px 30px rgba(0,0,0,0.15);
+      display: grid;
+      place-items: center;
+      overflow: auto;
+      position: relative;
+    }
+    canvas {
+      background: #b89977;
+      max-width: 100%;
+      max-height: 100%;
+      border-radius: 12px;
+      box-shadow: 0 14px 32px rgba(0,0,0,0.2);
+    }
+    .footnote { font-size: 12px; color: var(--muted); }
+  
+    .footer-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .footer-links { display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; margin-top: 2px; }
+    .footer-link { color: inherit; text-decoration: none; transition: color 0.2s; }
+    .footer-link:hover { color: var(--accent, #f472b6); text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header class="header-nav">
+    <a href="/" class="header-logo">小赵的小工坊</a>
+    <nav class="header-links">
+      <a href="/">🤝 首页</a>
+      <a href="https://www.ericzhao3366.work/">🏠 主页</a>
+      <a href="https://blog.ericzhao3366.work/">📖 博客</a>
+    </nav>
+  </header>
+  <div class="panel">
+    <h1>电影便签拼贴生成器</h1>
+    <div class="footnote">格式：每行“片名<tab>权重”或“片名 权重”</div>
+    <label for="titles">片名列表</label>
+    <textarea id="titles"></textarea>
+    <div class="controls">
+      <div class="file-picker">
+        <input id="file-input" title="选择文件" title="选择文件" class="file-hidden" type="file" accept="text/plain" />
+        <button type="button" class="file-button" id="file-trigger">选择文件</button>
+        <span class="file-name" id="file-name">未选择文件</span>
+      </div>
+    </div>
+    <div class="controls">
+      <label class="label-bold">缩放倍数：<span id="scale-value">1.00</span>x</label>
+      <input id="scale-range" title="缩放倍数" title="缩放倍数" type="range" min="0.20" max="3.50" step="0.01" value="1" />
+      <button id="auto-scale" type="button">自动估算</button>
+    </div>
+    <div class="controls">
+      <label class="label-bold">尺寸(px)：</label>
+      <input id="canvas-w" title="画布宽度" title="画布宽度" type="number" value="4962" step="1" class="input-number">
+      <span class="span-cross">×</span>
+      <input id="canvas-h" title="画布高度" title="画布高度" type="number" value="7014" step="1" class="input-number">
+    </div>
+    <div class="controls">
+      <label class="label-bold">预设：</label>
+      <label class="radio"><input type="radio" name="orientation" value="portrait" checked> A4纵向</label>
+      <label class="radio"><input type="radio" name="orientation" value="landscape"> A4横向</label>
+    </div>
+    <div class="controls">
+      <label class="label-bold">背景：</label>
+      <label class="radio"><input type="radio" name="bg-mode" value="color" checked> 纯色</label>
+      <label class="radio"><input type="radio" name="bg-mode" value="image"> 图片</label>
+      <span class="spacer"></span>
+      <input id="bg-color" type="color" value="#b89977" title="选择背景色" />
+    </div>
+    <div class="controls">
+      <div class="file-picker">
+        <input id="bg-file-input" title="上传背景图" title="上传背景图" class="file-hidden" type="file" accept="image/*" />
+        <button type="button" class="file-button" id="bg-file-trigger" disabled>上传背景图</button>
+        <span class="file-name" id="bg-file-name">未选择背景图</span>
+      </div>
+      <label class="label-bold">透明度：<span id="bg-opacity-value" class="value">0.35</span></label>
+      <input id="bg-opacity" title="背景透明度" title="背景透明度" type="range" min="0" max="1" step="0.01" value="0.35" disabled />
+    </div>
+    <div class="controls">
+      <label class="label-bold">便签透明度：<span id="note-opacity-value" class="value">1.00</span></label>
+      <input id="note-opacity" title="便签透明度" title="便签透明度" type="range" min="0.20" max="1.00" step="0.01" value="1" />
+    </div>
+    <div class="controls">
+      <div class="file-picker">
+        <input id="font-input" title="上传字体" title="上传字体" class="file-hidden" type="file" accept=".ttf,.ttc,.otf,.otc,.woff,.woff2" />
+        <button type="button" class="file-button" id="font-trigger">上传字体</button>
+        <span class="file-name" id="font-name">未选择字体</span>
+      </div>
+      <div class="footnote">若未选择则使用系统字体</div>
+    </div>
+    <div class="footnote">A4 画布（可选纵/横），随机布局，自动缩放至目标覆盖率</div>
+    <div class="controls">
+      <button id="generate" type="button">生成拼贴</button>
+      <button id="download" type="button" disabled>下载图片</button>
+    </div>
+    <div class="log" id="log"></div>
+    <div class="footer footer-wrap">
+      <div>© 2026 EricZhao</div>
+      <div class="footer-links">
+        <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" class="footer-link">浙ICP备2026008960号-2</a>
+        <a href="https://beian.mps.gov.cn/#/query/webSearch?code=33010202005482" target="_blank" rel="noopener noreferrer" class="footer-link">浙公网安备33010202005482号</a>
+      </div>
+    </div>
+  </div>
+  <div class="canvas-wrap">
+    <canvas id="board" width="4962" height="7014"></canvas>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('board');
+    const ctx = canvas.getContext('2d');
+    const logBox = document.getElementById('log');
+    const textarea = document.getElementById('titles');
+    const btnGenerate = document.getElementById('generate');
+    const btnDownload = document.getElementById('download');
+    const fileInput = document.getElementById('file-input');
+    const fileTrigger = document.getElementById('file-trigger');
+    const fileName = document.getElementById('file-name');
+    const scaleRange = document.getElementById('scale-range');
+    const scaleValue = document.getElementById('scale-value');
+    const autoScaleBtn = document.getElementById('auto-scale');
+    const fontInput = document.getElementById('font-input');
+    const fontTrigger = document.getElementById('font-trigger');
+    const fontName = document.getElementById('font-name');
+    const canvasWInput = document.getElementById('canvas-w');
+    const canvasHInput = document.getElementById('canvas-h');
+    const orientationInputs = document.querySelectorAll('input[name="orientation"]');
+    const bgModeInputs = document.querySelectorAll('input[name="bg-mode"]');
+    const bgColorInput = document.getElementById('bg-color');
+    const bgFileInput = document.getElementById('bg-file-input');
+    const bgFileTrigger = document.getElementById('bg-file-trigger');
+    const bgFileName = document.getElementById('bg-file-name');
+    const bgOpacityRange = document.getElementById('bg-opacity');
+    const bgOpacityValue = document.getElementById('bg-opacity-value');
+    const noteOpacityRange = document.getElementById('note-opacity');
+    const noteOpacityValue = document.getElementById('note-opacity-value');
+
+    let CANVAS_W = 4962; // A4 @600DPI width
+    let CANVAS_H = 7014; // A4 @600DPI height
+    function applyCanvasSize(w, h) {
+      CANVAS_W = w; CANVAS_H = h;
+      canvas.width = CANVAS_W;
+      canvas.height = CANVAS_H;
+    }
+    // Keep canvas backing store consistent with logical dimensions
+    applyCanvasSize(CANVAS_W, CANVAS_H);
+    const BACKGROUND = '#b89977';
+    const MARGIN = 90;
+    const PAD_BETWEEN = 14;
+    const LINE_GAP = 6;
+    const TARGET_FILL = 0.82;
+    const COVERAGE_TARGET = 0.90;
+    const MAX_CARD_WIDTH_RATIO = 0.38;
+    const SCALE_MIN = 0.35;
+    const SCALE_MAX = 3.0;
+    const ANGLE_RANGE = 6.0;
+
+    const CARD_COLORS = [
+      '#fcf2d8', '#d7e8f6', '#dcecd6', '#f1dce0', '#eee5cc', '#dfd6f3', '#d3e7e1', '#f9e4d6'
+    ];
+
+    const DEFAULT_FONT_STACK = '"Microsoft YaHei", "PingFang SC", "Arial", sans-serif';
+    let activeFontStack = DEFAULT_FONT_STACK;
+    let uploadedFontUrl = null;
+    // Background state
+    let bgMode = 'color';
+    let bgColor = '#b89977';
+    let bgImage = null; // HTMLImageElement
+    let bgImageUrl = null; // Object URL for cleanup
+    let bgOpacity = 0.35;
+    let noteOpacity = 1.0;
+    let lastPlacements = null; // for redraw on bg changes
+
+    function logLine(msg) {
+      const stamp = new Date().toLocaleTimeString();
+      logBox.textContent = `[${stamp}] ${msg}\n` + logBox.textContent;
+    }
+
+    function parseTitles(text) {
+      const lines = text.split(/\r?\n/);
+      const out = [];
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        let title, weight;
+        if (line.includes('\t')) {
+          [title, weight] = line.split('\t', 2);
+        } else {
+          const parts = line.trim().split(/\s+/);
+          weight = parts.pop();
+          title = parts.join(' ');
+        }
+        const w = parseInt(weight, 10);
+        if (!title || Number.isNaN(w)) continue;
+        out.push([title.trim(), w]);
+      }
+      // de-duplicate
+      const seen = new Set();
+      const deduped = [];
+      for (const [t, w] of out) {
+        if (seen.has(t)) continue;
+        seen.add(t);
+        deduped.push([t, w]);
+      }
+      return deduped;
+    }
+
+    function measureText(fontSize, text) {
+      ctx.save();
+      ctx.font = `${fontSize}px ${activeFontStack}`;
+      const metrics = ctx.measureText(text);
+      const w = metrics.width;
+      // Rough height approximation since measureText height is limited
+      const h = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent || fontSize * 1.05;
+      ctx.restore();
+      return { w, h };
+    }
+
+    function buildCards(scale, pairs, maxCardWidth) {
+      const cards = [];
+      for (const [title, weight] of pairs) {
+        let fontSize = Math.max(10, Math.round(60 * scale + weight * 16 * scale));
+        let metrics = measureText(fontSize, title);
+        const padX = 50 * scale;
+        const padY = 40 * scale;
+        let cardW = metrics.w + padX * 2;
+        let cardH = metrics.h + padY * 2;
+        while (cardW > maxCardWidth && fontSize > 10) {
+          fontSize = Math.max(10, Math.round(fontSize * 0.92));
+          metrics = measureText(fontSize, title);
+          cardW = metrics.w + padX * 2;
+          cardH = metrics.h + padY * 2;
+        }
+        cards.push({ title, weight, fontSize, textW: metrics.w, textH: metrics.h, w: cardW, h: cardH });
+      }
+      return cards;
+    }
+
+    function rotatedBBox(w, h, angRad) {
+      const c = Math.abs(Math.cos(angRad));
+      const s = Math.abs(Math.sin(angRad));
+      return { w: w * c + h * s, h: w * s + h * c };
+    }
+
+    function placeCards(cards, innerW, innerH) {
+      // Sort large to small so later cards sit on top visually
+      const ordered = [...cards].sort((a, b) => (b.w * b.h) - (a.w * a.h));
+      const placements = [];
+      for (const card of ordered) {
+        let placed = false;
+        for (let t = 0; t < 500; t++) {
+          const angDeg = (Math.random() * 2 - 1) * ANGLE_RANGE;
+          const ang = angDeg * Math.PI / 180;
+          const box = rotatedBBox(card.w + 30, card.h + 30, ang);
+          const textBox = rotatedBBox(card.textW + 12, card.textH + 12, ang);
+          const cxMin = MARGIN + box.w / 2;
+          const cxMax = MARGIN + innerW - box.w / 2;
+          const cyMin = MARGIN + box.h / 2;
+          const cyMax = MARGIN + innerH - box.h / 2;
+          if (cxMin > cxMax || cyMin > cyMax) break;
+          const cx = cxMin + Math.random() * (cxMax - cxMin);
+          const cy = cyMin + Math.random() * (cyMax - cyMin);
+          const bb = { x: cx - box.w / 2, y: cy - box.h / 2, w: box.w, h: box.h };
+          const textBB = { x: cx - textBox.w / 2, y: cy - textBox.h / 2, w: textBox.w, h: textBox.h };
+          const collision = placements.some(p => {
+            const cardOverOtherText = !(bb.x + bb.w + PAD_BETWEEN <= p.textBB.x || p.textBB.x + p.textBB.w + PAD_BETWEEN <= bb.x || bb.y + bb.h + PAD_BETWEEN <= p.textBB.y || p.textBB.y + p.textBB.h + PAD_BETWEEN <= bb.y);
+            const otherCardOverMyText = !(p.bb.x + p.bb.w + PAD_BETWEEN <= textBB.x || textBB.x + textBB.w + PAD_BETWEEN <= p.bb.x || p.bb.y + p.bb.h + PAD_BETWEEN <= textBB.y || textBB.y + textBB.h + PAD_BETWEEN <= p.bb.y);
+            return cardOverOtherText || otherCardOverMyText;
+          });
+          if (!collision) {
+            placements.push({ card, cx, cy, angDeg, bb, textBB });
+            placed = true;
+            break;
+          }
+        }
+        if (!placed) return null;
+      }
+      return placements;
+    }
+
+    function computeCoverage(placements) {
+      if (!placements) return 0;
+      // Sweep-line union area of bounding boxes
+      const rects = placements.map(p => ({ x1: p.bb.x, x2: p.bb.x + p.bb.w, y1: p.bb.y, y2: p.bb.y + p.bb.h }));
+      const events = [];
+      for (const r of rects) {
+        events.push({ x: r.x1, open: true, y1: r.y1, y2: r.y2 });
+        events.push({ x: r.x2, open: false, y1: r.y1, y2: r.y2 });
+      }
+      events.sort((a, b) => a.x - b.x);
+      let prevX = events[0]?.x ?? 0;
+      let area = 0;
+      const active = [];
+      const yLength = list => {
+        if (!list.length) return 0;
+        list.sort((a, b) => a.y1 - b.y1);
+        let total = 0;
+        let [cs, ce] = [list[0].y1, list[0].y2];
+        for (let i = 1; i < list.length; i++) {
+          const { y1, y2 } = list[i];
+          if (y1 > ce) {
+            total += ce - cs;
+            cs = y1; ce = y2;
+          } else {
+            ce = Math.max(ce, y2);
+          }
+        }
+        total += ce - cs;
+        return total;
+      };
+      for (const ev of events) {
+        const dx = ev.x - prevX;
+        if (dx > 0) area += dx * yLength(active);
+        prevX = ev.x;
+        if (ev.open) active.push({ y1: ev.y1, y2: ev.y2 });
+        else {
+          const idx = active.findIndex(a => a.y1 === ev.y1 && a.y2 === ev.y2);
+          if (idx >= 0) active.splice(idx, 1);
+        }
+      }
+      return area / (CANVAS_W * CANVAS_H);
+    }
+
+    function drawPin(g, cx, cy) {
+      g.save();
+      g.fillStyle = 'rgba(0,0,0,0.22)';
+      g.beginPath();
+      g.arc(cx + 2, cy + 2, 10, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = '#822f2f';
+      g.beginPath();
+      g.arc(cx, cy, 10, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = '#c46767';
+      g.beginPath();
+      g.arc(cx - 3, cy - 3, 4, 0, Math.PI * 2);
+      g.fill();
+      g.restore();
+    }
+
+    function drawBackground() {
+      // Always paint base color so transparent images have a backdrop
+      ctx.save();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = bgColor || BACKGROUND;
+      ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+      if (bgMode === 'image' && bgImage) {
+        const iw = bgImage.naturalWidth || bgImage.width;
+        const ih = bgImage.naturalHeight || bgImage.height;
+        if (iw && ih) {
+          const scale = Math.max(CANVAS_W / iw, CANVAS_H / ih);
+          const dw = iw * scale;
+          const dh = ih * scale;
+          const dx = (CANVAS_W - dw) / 2;
+          const dy = (CANVAS_H - dh) / 2;
+          ctx.globalAlpha = Math.min(Math.max(bgOpacity, 0), 1);
+          ctx.drawImage(bgImage, dx, dy, dw, dh);
+        }
+      }
+      ctx.restore();
+    }
+
+    function redraw() {
+      if (lastPlacements) {
+        drawPlacements(lastPlacements);
+      } else {
+        // no placements yet, just refresh background for preview
+        ctx.save();
+        drawBackground();
+        ctx.restore();
+      }
+    }
+
+    function drawPlacements(placements) {
+      drawBackground();
+      placements.sort((a, b) => (b.card.w * b.card.h) - (a.card.w * a.card.h));
+      for (const p of placements) {
+        const { card, cx, cy, angDeg } = p;
+        const cardCanvas = document.createElement('canvas');
+        cardCanvas.width = Math.ceil(card.w + 30);
+        cardCanvas.height = Math.ceil(card.h + 30);
+        const g = cardCanvas.getContext('2d');
+        // Shadow
+        g.fillStyle = 'rgba(0,0,0,0.18)';
+        g.fillRect(15, 15, card.w, card.h);
+        // Body
+        g.fillStyle = CARD_COLORS[Math.floor(Math.random() * CARD_COLORS.length)];
+        g.strokeStyle = '#5a4637';
+        g.lineWidth = 2;
+        g.fillRect(0, 0, card.w, card.h);
+        g.strokeRect(0.5, 0.5, card.w - 1, card.h - 1);
+        // Text
+        g.fillStyle = '#232323';
+        g.font = `${card.fontSize}px ${activeFontStack}`;
+        g.textBaseline = 'top';
+        const textX = (card.w - card.textW) / 2;
+        const textY = (card.h - card.textH) / 2;
+        g.fillText(card.title, textX, textY);
+        // Pin
+        drawPin(g, card.w / 2 + (Math.random() * 12 - 6), 10);
+
+        // Rotate and place
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(angDeg * Math.PI / 180);
+        ctx.globalAlpha = Math.min(Math.max(noteOpacity, 0), 1);
+        ctx.drawImage(cardCanvas, -cardCanvas.width / 2, -cardCanvas.height / 2);
+        ctx.restore();
+      }
+    }
+
+    async function generate() {
+      btnGenerate.disabled = true;
+      btnDownload.disabled = true;
+      logLine('开始生成...');
+      // 增加 yield 以允许浏览器渲染 UI 状态
+      await new Promise(r => setTimeout(r, 10));
+
+      const pairs = parseTitles(textarea.value);
+      if (!pairs.length) {
+        logLine('未找到有效的片名与权重');
+        btnGenerate.disabled = false;
+        return;
+      }
+      const innerW = CANVAS_W - MARGIN * 2;
+      const innerH = CANVAS_H - MARGIN * 2;
+      const maxCardWidth = innerW * MAX_CARD_WIDTH_RATIO;
+
+      const clampScale = v => Math.min(Math.max(v, SCALE_MIN), SCALE_MAX);
+      let scale = parseFloat(scaleRange.value);
+      if (Number.isNaN(scale)) scale = SCALE_MIN;
+      scale = clampScale(scale);
+
+      let placements = null;
+      let attempts = 0;
+      while (!placements && attempts < 5) {
+        const cards = buildCards(scale, pairs, maxCardWidth);
+        placements = placeCards(cards, innerW, innerH);
+        attempts++;
+      }
+
+      if (!placements) {
+        logLine('无法生成：请降低权重、减少数量或调低缩放后重试。');
+        btnGenerate.disabled = false;
+        return;
+      }
+
+      const coverage = computeCoverage(placements);
+      logLine(`放置成功，覆盖率 ${(coverage * 100).toFixed(2)}%`);
+      if (coverage < COVERAGE_TARGET) logLine('覆盖率低于目标，可提升权重或增加数量。');
+      drawPlacements(placements);
+      lastPlacements = placements;
+      btnDownload.disabled = false;
+      btnGenerate.disabled = false;
+    }
+
+    btnGenerate.addEventListener('click', generate);
+
+    btnDownload.addEventListener('click', () => {
+      canvas.toBlob(blob => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'movie_collage.png';
+        a.click();
+        URL.revokeObjectURL(url);
+      }, 'image/png');
+    });
+
+    fileTrigger.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files?.[0];
+      if (!file) return;
+      fileName.textContent = file.name;
+      const reader = new FileReader();
+      reader.onload = e => {
+        textarea.value = e.target?.result || '';
+        logLine(`已加载文件：${file.name}`);
+        refreshSuggestedScale();
+        // 清空 file input 值，允许后续重新选择同名但内容不同的文件
+        try { fileInput.value = ''; } catch (err) { /* ignore */ }
+      };
+      reader.readAsText(file, 'utf-8');
+    });
+
+    function refreshSuggestedScale() {
+      const pairs = parseTitles(textarea.value);
+      if (!pairs.length) return;
+      const innerW = CANVAS_W - MARGIN * 2;
+      const innerH = CANVAS_H - MARGIN * 2;
+      const maxCardWidth = innerW * MAX_CARD_WIDTH_RATIO;
+      const baseCards = buildCards(1, pairs, maxCardWidth);
+      const totalArea = baseCards.reduce((s, c) => s + c.w * c.h, 0);
+      const targetArea = innerW * innerH * TARGET_FILL * 0.5; // safety factor to reduce over-estimate
+      const clampScale = v => Math.min(Math.max(v, SCALE_MIN), SCALE_MAX);
+      let scale = totalArea > 0 ? Math.sqrt(targetArea / totalArea) : 1;
+      scale = clampScale(scale);
+      scaleRange.value = scale.toFixed(2);
+      scaleValue.textContent = scale.toFixed(2);
+    }
+
+    function updateCanvasSize(w, h, label) {
+      applyCanvasSize(w, h);
+      canvasWInput.value = w;
+      canvasHInput.value = h;
+      // 清空原有摆放以避免尺寸和坐标错位，并触发完整重绘
+      lastPlacements = null;
+      redraw();
+      refreshSuggestedScale();
+      logLine(label || `画布尺寸变更为 ${w}×${h}`);
+    }
+
+    function setOrientation(mode) {
+      if (mode === 'landscape') {
+        updateCanvasSize(7014, 4962, `已切换画布为横向 (7014×4962)`);
+      } else {
+        updateCanvasSize(4962, 7014, `已切换画布为纵向 (4962×7014)`);
+      }
+    }
+
+    orientationInputs.forEach(inp => {
+      inp.addEventListener('change', () => {
+        if (inp.checked) setOrientation(inp.value);
+      });
+    });
+
+    function onCustomSizeChange() {
+      const w = parseInt(canvasWInput.value, 10);
+      const h = parseInt(canvasHInput.value, 10);
+      if (w > 0 && h > 0) {
+        orientationInputs.forEach(i => i.checked = false);
+        updateCanvasSize(w, h);
+      }
+    }
+    canvasWInput.addEventListener('change', onCustomSizeChange);
+    canvasHInput.addEventListener('change', onCustomSizeChange);
+
+    // Background UI wiring
+    bgFileTrigger.addEventListener('click', () => bgFileInput.click());
+
+    bgModeInputs.forEach(inp => {
+      inp.addEventListener('change', () => {
+        if (!inp.checked) return;
+        bgMode = inp.value;
+        const useImage = bgMode === 'image';
+        bgFileTrigger.disabled = !useImage;
+        bgOpacityRange.disabled = !useImage;
+        // 若选择图片则颜色同时可选，若只选择纯色则图片不可选
+        // 颜色选择器始终可用，因为图片模式下也需要底色
+        bgColorInput.disabled = false;
+        logLine(`背景模式：${useImage ? '图片' : '纯色'}`);
+        redraw();
+      });
+    });
+
+    bgColorInput.addEventListener('input', () => {
+      bgColor = bgColorInput.value;
+      redraw();
+    });
+
+    bgOpacityRange.addEventListener('input', () => {
+      bgOpacity = parseFloat(bgOpacityRange.value) || 0;
+      bgOpacityValue.textContent = bgOpacity.toFixed(2);
+      redraw();
+    });
+
+    noteOpacityRange.addEventListener('input', () => {
+      noteOpacity = parseFloat(noteOpacityRange.value) || 1;
+      noteOpacityValue.textContent = noteOpacity.toFixed(2);
+      redraw();
+    });
+
+    async function loadBackgroundImage(file) {
+      try {
+        if (bgImageUrl) URL.revokeObjectURL(bgImageUrl);
+        bgImageUrl = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => { bgImage = img; redraw(); logLine(`已设置背景图：${file.name}`); };
+        img.onerror = () => { logLine('背景图加载失败'); };
+        img.src = bgImageUrl;
+      } catch (err) {
+        logLine(`背景图加载异常：${err?.message || err}`);
+      }
+    }
+
+    bgFileInput.addEventListener('change', () => {
+      const file = bgFileInput.files?.[0];
+      if (!file) return;
+      bgFileName.textContent = file.name;
+      loadBackgroundImage(file);
+      // 清空文件输入以允许重新选择同名图片
+      try { bgFileInput.value = ''; } catch (err) { /* ignore */ }
+    });
+
+    scaleRange.addEventListener('input', () => {
+      scaleValue.textContent = parseFloat(scaleRange.value).toFixed(2);
+    });
+
+    autoScaleBtn.addEventListener('click', () => {
+      refreshSuggestedScale();
+      logLine(`已根据内容自动估算缩放为 ${parseFloat(scaleRange.value).toFixed(2)}x`);
+    });
+
+    textarea.addEventListener('blur', refreshSuggestedScale);
+
+    async function loadCustomFont(file) {
+      try {
+        const buf = await file.arrayBuffer();
+        if (uploadedFontUrl) {
+          URL.revokeObjectURL(uploadedFontUrl);
+        }
+        uploadedFontUrl = URL.createObjectURL(new Blob([buf]));
+        const fontFace = new FontFace('UploadedMovieFont', `url(${uploadedFontUrl})`);
+        await fontFace.load();
+        document.fonts.add(fontFace);
+        activeFontStack = '"UploadedMovieFont", ' + DEFAULT_FONT_STACK;
+        logLine(`已加载自定义字体：${file.name}`);
+        return true;
+      } catch (err) {
+        logLine(`字体加载失败：${err?.message || err}`);
+        activeFontStack = DEFAULT_FONT_STACK;
+        return false;
+      }
+    }
+
+    fontTrigger.addEventListener('click', () => fontInput.click());
+
+    fontInput.addEventListener('change', async () => {
+      const file = fontInput.files?.[0];
+      if (!file) return;
+      fontName.textContent = file.name;
+      btnGenerate.disabled = true;
+      const ok = await loadCustomFont(file);
+      btnGenerate.disabled = false;
+      if (ok) {
+        logLine('字体已应用，生成时将使用该字体。');
+        // 清空文件输入以允许重新选择同名但更新的字体文件
+        try { fontInput.value = ''; } catch (err) { /* ignore */ }
+      }
+    });
+
+    // Prefill with a small sample
+    textarea.value = [
+      '霸王别姬\t5',
+      '盗梦空间\t4',
+      '星际穿越\t4',
+      '楚门的世界\t3',
+      '千与千寻\t3',
+      '这个杀手不太冷\t3',
+      '少年派的奇幻漂流\t2',
+      '美丽人生\t2',
+      '大话西游之月光宝盒\t2',
+      '海蒂和爷爷\t1'
+    ].join('\n');
+    refreshSuggestedScale();
+  </script>
+</body>
+</html>

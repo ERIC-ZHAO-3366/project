@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>图云前端生成器</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b1021;
+      --panel: #11162c;
+      --panel-strong: #192243;
+      --text: #f3f7ff;
+      --muted: #9fb0d1;
+      --accent: #4ee0c7;
+      --accent-2: #ff9c6b;
+      --border: #23305c;
+      --danger: #ff6b6b;
+      --shadow: 0 14px 40px rgba(0,0,0,0.35);
+    }
+    * { box-sizing: border-box; }
+    
+    /* 新增顶部导航样式 */
+    .header-nav {
+      position: fixed; top: 0; left: 0; right: 0; height: 60px;
+      background: rgba(17, 22, 44, 0.7); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border); z-index: 99;
+      display: flex; align-items: center; justify-content: space-between; padding: 0 24px;
+    }
+    @media (min-width: 768px) { .header-nav { padding: 0 40px; } }
+    .header-logo { font-size: 20px; font-weight: 600; color: #f472b6; text-decoration: none; letter-spacing: 0.05em; transition: color 0.3s; }
+    .header-logo:hover { color: #db2777; }
+    @media (max-width: 768px) { .header-logo { display: none; } .header-nav { justify-content: flex-end; } }
+    .header-links { display: flex; align-items: center; gap: 24px; }
+    @media (min-width: 768px) { .header-links { gap: 32px; } }
+    .header-links a { color: var(--text); font-weight: 600; text-decoration: none; transition: all 0.2s; font-size: 15px; }
+    .header-links a:hover { color: #f472b6; }
+    .header-links a:active { transform: scale(0.95); }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
+      background: radial-gradient(circle at 20% 20%, rgba(78,224,199,0.12), transparent 40%),
+                  radial-gradient(circle at 80% 10%, rgba(255,156,107,0.18), transparent 35%),
+                  radial-gradient(circle at 70% 70%, rgba(78,224,199,0.10), transparent 35%),
+                  #060917;
+      color: var(--text);
+    }
+    header {
+      padding: 18px 24px 10px;
+    }
+    h1 {
+      margin: 0;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    .subtitle {
+      color: var(--muted);
+      font-size: 14px;
+      margin-top: 6px;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 16px;
+      padding: 80px 16px 20px;
+    }
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+    .panel {
+      background: linear-gradient(135deg, var(--panel), var(--panel-strong));
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+    }
+    .section-title {
+      margin: 12px 0 6px;
+      font-size: 15px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    label { font-size: 14px; color: var(--text); }
+    input[type="file"], select, button, input[type="color"], input[type="number"], input[type="text"] {
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      padding: 10px 12px;
+      font-size: 14px;
+      outline: none;
+    }
+    select {
+      background: linear-gradient(135deg, var(--panel), var(--panel-strong));
+      color: var(--text);
+    }
+    select option {
+      background: var(--panel-strong);
+      color: var(--text);
+    }
+    input[type="range"] { width: 100%; }
+    button {
+      cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.2s;
+    }
+    button.primary { background: linear-gradient(135deg, var(--accent), #2bbfa4); border: none; color: #08131f; font-weight: 600; }
+    button.ghost { background: transparent; border: 1px solid var(--border); }
+    button:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(0,0,0,0.3); }
+    .row { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+    .fill-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 8px;
+      max-height: 180px;
+      overflow-y: auto;
+      padding-right: 6px;
+    }
+    .fill-list::-webkit-scrollbar { width: 8px; }
+    .fill-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 6px; }
+    .fill-list::-webkit-scrollbar-track { background: transparent; }
+    .fill-chip {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.03);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: border 0.15s, background 0.15s;
+    }
+    .fill-chip.selected { border-color: var(--accent); background: rgba(78,224,199,0.1); }
+    .badge { background: rgba(255,255,255,0.08); padding: 4px 8px; border-radius: 8px; font-size: 12px; color: var(--muted); }
+    .preview-wrap { position: relative; }
+    .preview-area {
+      width: 100%;
+      min-height: 480px;
+      background: repeating-linear-gradient(45deg, #0e1426, #0e1426 14px, #111a33 14px, #111a33 28px);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    canvas { max-width: 100%; height: auto; image-rendering: optimizeQuality; }
+    .status { margin-top: 10px; color: var(--muted); font-size: 14px; min-height: 20px; }
+    .pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--muted); font-size: 13px; }
+    .pill.small { padding: 4px 8px; font-size: 12px; }
+    .flex { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .color-input-wrap { position: relative; }
+    .color-input-wrap input[type="color"] { width: 100%; height: 38px; padding: 0; border-radius: 10px; }
+    .color-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; letter-spacing: 0.4px; color: var(--text); pointer-events: none; -webkit-user-select: none; user-select: none; }
+    .footer {
+      margin: 12px 16px 20px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+      letter-spacing: 0.2px;
+    }
+  
+    .footer-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .footer-links { display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; margin-top: 2px; }
+    .footer-link { color: inherit; text-decoration: none; transition: color 0.2s; }
+    .footer-link:hover { color: var(--accent, #f472b6); text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header class="header-nav">
+    <a href="/" class="header-logo">小赵的小工坊</a>
+    <nav class="header-links">
+      <a href="/">🤝 首页</a>
+      <a href="https://www.ericzhao3366.work/">🏠 主页</a>
+      <a href="https://blog.ericzhao3366.work/">📖 博客</a>
+    </nav>
+  </header>
+  <div class="layout">
+    <section class="panel" aria-label="controls">
+      <div class="section-title">图片</div>
+      <div class="field">
+        <label>轮廓图片</label>
+        <input id="outline-input" title="选择轮廓图片" type="file" accept="image/*">
+        <div class="pill" id="outline-name">未选择</div>
+      </div>
+      <div class="field">
+        <label>填充图片（可多选）</label>
+        <input id="fill-input" title="选择填充图片" type="file" accept="image/*" multiple>
+        <div class="fill-list" id="fill-list"></div>
+        <div class="pill" id="fill-summary">未加载填充图</div>
+      </div>
+
+      <div class="section-title">蒙版</div>
+      <div class="field">
+        <label>阈值 <span id="threshold-value">128</span></label>
+        <input id="threshold" title="阈值" type="range" min="0" max="255" value="128">
+      </div>
+      <div class="field">
+        <label class="flex"><input id="invert" type="checkbox" title="反转蒙版"> 反转蒙版</label>
+      </div>
+
+      <div class="section-title">填充</div>
+      <div class="field">
+        <label>填充模式</label>
+        <select id="fill-mode" title="填充模式">
+          <option value="tile">多张平铺</option>
+          <option value="single">仅选中填充</option>
+        </select>
+      </div>
+
+      <div class="section-title">边框</div>
+      <div class="field">
+        <label class="flex"><input id="show-border" type="checkbox" checked title="显示边界"> 显示轮廓边框</label>
+      </div>
+      <div class="field">
+        <label>边框宽度 <span id="border-width-value">3</span> px</label>
+        <input id="border-width" title="边框宽度" type="range" min="0" max="20" value="3">
+      </div>
+      <div class="field row">
+        <div>
+          <label class="flex">边框颜色</label>
+          <div class="color-input-wrap">
+            <input id="border-color" title="选择边框颜色" type="color" value="#000000">
+            <span class="color-overlay" id="border-color-overlay">点我更换颜色</span>
+          </div>
+        </div>
+        <div>
+          <label>导出背景模式</label>
+          <select id="bg-mode" title="背景模式">
+            <option value="transparent">透明</option>
+            <option value="color">颜色</option>
+          </select>
+        </div>
+      </div>
+      <div class="field row">
+        <div>
+          <label class="flex">背景颜色</label>
+          <div class="color-input-wrap">
+            <input id="bg-color" title="选择背景颜色" type="color" value="#ffffff">
+            <span class="color-overlay" id="bg-color-overlay">点我更换颜色</span>
+          </div>
+        </div>
+        <div>
+          <label>导出格式</label>
+          <select id="export-format" title="导出格式">
+            <option value="image/png">PNG</option>
+            <option value="image/webp">WEBP</option>
+            <option value="image/jpeg">JPEG</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row mt-12">
+        <button class="primary" id="preview-btn">生成 / 预览</button>
+        <button class="ghost" id="download-btn">保存结果</button>
+      </div>
+      <div class="status" id="status">等待加载图片…</div>
+    </section>
+
+    <section class="panel preview-wrap" aria-label="preview">
+      <div class="section-title">预览</div>
+      <div class="preview-area">
+        <canvas id="preview-canvas" width="640" height="480"></canvas>
+      </div>
+    </section>
+  </div>
+
+  <footer class="footer footer-wrap">
+    <div>© 2025 EricZhao | 本地使用请注意图片版权归属</div>
+    <div class="footer-links">
+      <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" class="footer-link">浙ICP备2026008960号-2</a>
+      <a href="https://beian.mps.gov.cn/#/query/webSearch?code=33010202005482" target="_blank" rel="noopener noreferrer" class="footer-link">浙公网安备33010202005482号</a>
+    </div>
+  </footer>
+
+  <script>
+    const state = {
+      outline: null, // {img, width, height}
+      fills: [], // [{img, name}]
+      selectedFill: 0,
+      compositeCanvas: null,
+    };
+
+    const els = {
+      outlineInput: document.getElementById('outline-input'),
+      fillInput: document.getElementById('fill-input'),
+      fillList: document.getElementById('fill-list'),
+      fillSummary: document.getElementById('fill-summary'),
+      outlineName: document.getElementById('outline-name'),
+      threshold: document.getElementById('threshold'),
+      thresholdValue: document.getElementById('threshold-value'),
+      invert: document.getElementById('invert'),
+      fillMode: document.getElementById('fill-mode'),
+      showBorder: document.getElementById('show-border'),
+      borderWidth: document.getElementById('border-width'),
+      borderWidthValue: document.getElementById('border-width-value'),
+      borderColor: document.getElementById('border-color'),
+      borderColorValue: document.getElementById('border-color-value'),
+      borderColorOverlay: document.getElementById('border-color-overlay'),
+      bgMode: document.getElementById('bg-mode'),
+      bgColor: document.getElementById('bg-color'),
+      bgColorValue: document.getElementById('bg-color-value'),
+      bgColorOverlay: document.getElementById('bg-color-overlay'),
+      exportFormat: document.getElementById('export-format'),
+      previewBtn: document.getElementById('preview-btn'),
+      downloadBtn: document.getElementById('download-btn'),
+      status: document.getElementById('status'),
+      previewCanvas: document.getElementById('preview-canvas'),
+    };
+
+    const setStatus = (msg, isError = false) => {
+      els.status.textContent = msg;
+      els.status.style.color = isError ? 'var(--danger)' : 'var(--muted)';
+    };
+
+    const loadImageFromFile = (file) => new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        resolve({ img, name: file.name, width: img.naturalWidth, height: img.naturalHeight });
+      };
+      img.onerror = () => reject(new Error('无法加载图片'));
+      img.src = url;
+    });
+
+    const renderFillList = () => {
+      els.fillList.innerHTML = '';
+      state.fills.forEach((item, idx) => {
+        const div = document.createElement('div');
+        div.className = 'fill-chip' + (idx === state.selectedFill ? ' selected' : '');
+        div.innerHTML = `<span>${idx + 1}. ${item.name}</span><span class="badge">${item.img.naturalWidth}×${item.img.naturalHeight}</span>`;
+        div.addEventListener('click', () => {
+          state.selectedFill = idx;
+          renderFillList();
+        });
+        els.fillList.appendChild(div);
+      });
+      els.fillSummary.textContent = state.fills.length
+        ? `已加载 ${state.fills.length} 张，滚动列表可选择`
+        : '未加载填充图';
+    };
+
+    const getCanvas = (w, h) => {
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const ctx = c.getContext('2d', { willReadFrequently: true });
+      ctx.imageSmoothingQuality = 'high';
+      return { c, ctx };
+    };
+
+    const makeMask = (outline, threshold, invert) => {
+      const { c, ctx } = getCanvas(outline.width, outline.height);
+      ctx.drawImage(outline.img, 0, 0, outline.width, outline.height);
+      const data = ctx.getImageData(0, 0, outline.width, outline.height);
+      const src = data.data;
+      const alpha = new Uint8ClampedArray(outline.width * outline.height);
+      for (let i = 0, j = 0; i < src.length; i += 4, j++) {
+        const r = src[i], g = src[i + 1], b = src[i + 2], a = src[i + 3];
+        const lum = (0.299 * r + 0.587 * g + 0.114 * b) * (a / 255);
+        const val = invert ? 255 - lum : lum;
+        alpha[j] = val >= threshold ? 255 : 0;
+      }
+      return { alpha, width: outline.width, height: outline.height };
+    };
+
+    const dilateMask = (maskAlpha, width, height, radius) => {
+      const out = new Uint8ClampedArray(maskAlpha.length);
+      const r = Math.max(0, Math.floor(radius));
+      if (r === 0) return out;
+      for (let y = 0; y < height; y++) {
+        const y0 = Math.max(0, y - r);
+        const y1 = Math.min(height - 1, y + r);
+        for (let x = 0; x < width; x++) {
+          const x0 = Math.max(0, x - r);
+          const x1 = Math.min(width - 1, x + r);
+          let maxAlpha = 0;
+          for (let yy = y0; yy <= y1; yy++) {
+            const row = yy * width;
+            for (let xx = x0; xx <= x1; xx++) {
+              const val = maskAlpha[row + xx];
+              if (val > maxAlpha) maxAlpha = val;
+              if (maxAlpha === 255) break;
+            }
+            if (maxAlpha === 255) break;
+          }
+          out[y * width + x] = maxAlpha;
+        }
+      }
+      return out;
+    };
+
+    const alphaToCanvas = (alpha, width, height) => {
+      const { c, ctx } = getCanvas(width, height);
+      const arr = new Uint8ClampedArray(width * height * 4);
+      for (let i = 0, j = 0; i < alpha.length; i++, j += 4) {
+        arr[j] = 0; arr[j + 1] = 0; arr[j + 2] = 0; arr[j + 3] = alpha[i];
+      }
+      const imgData = new ImageData(arr, width, height);
+      ctx.putImageData(imgData, 0, 0);
+      return c;
+    };
+
+    const buildFillCanvas = (mode, baseW, baseH) => {
+      if (!state.fills.length) throw new Error('请先添加至少一张填充图片');
+      const { c, ctx } = getCanvas(baseW, baseH);
+      if (mode === 'single') {
+        const idx = Math.min(state.selectedFill, state.fills.length - 1);
+        const img = state.fills[idx].img;
+        ctx.drawImage(img, 0, 0, baseW, baseH);
+        return c;
+      }
+      const count = state.fills.length;
+      const cols = Math.ceil(Math.sqrt(count));
+      const rows = Math.ceil(count / cols);
+      const cellW = Math.max(1, Math.floor(baseW / cols));
+      const cellH = Math.max(1, Math.floor(baseH / rows));
+      for (let i = 0; i < rows * cols; i++) {
+        const r = Math.floor(i / cols);
+        const col = i % cols;
+        const x0 = col * cellW;
+        const y0 = r * cellH;
+        const x1 = col === cols - 1 ? baseW : x0 + cellW;
+        const y1 = r === rows - 1 ? baseH : y0 + cellH;
+        const w = Math.max(1, x1 - x0);
+        const h = Math.max(1, y1 - y0);
+        const choice = state.fills[Math.floor(Math.random() * count)].img;
+        ctx.drawImage(choice, 0, 0, choice.naturalWidth, choice.naturalHeight, x0, y0, w, h);
+      }
+      return c;
+    };
+
+    const compose = () => {
+      if (!state.outline) throw new Error('请先选择轮廓图片');
+      if (!state.fills.length) throw new Error('请先添加填充图片');
+      const baseW = state.outline.width;
+      const baseH = state.outline.height;
+      const mask = makeMask(state.outline, Number(els.threshold.value), els.invert.checked);
+      const fillCanvas = buildFillCanvas(els.fillMode.value === 'single' ? 'single' : 'tile', baseW, baseH);
+
+      const { c: comp, ctx } = getCanvas(baseW, baseH);
+      ctx.clearRect(0, 0, baseW, baseH);
+      ctx.drawImage(fillCanvas, 0, 0);
+      ctx.globalCompositeOperation = 'destination-in';
+      ctx.drawImage(alphaToCanvas(mask.alpha, baseW, baseH), 0, 0);
+      ctx.globalCompositeOperation = 'source-over';
+
+      if (els.showBorder.checked && Number(els.borderWidth.value) > 0) {
+        const dilated = dilateMask(mask.alpha, baseW, baseH, Number(els.borderWidth.value));
+        const borderAlpha = new Uint8ClampedArray(mask.alpha.length);
+        for (let i = 0; i < mask.alpha.length; i++) {
+          borderAlpha[i] = Math.max(0, dilated[i] - mask.alpha[i]);
+        }
+        const borderCanvas = alphaToCanvas(borderAlpha, baseW, baseH);
+        const { ctx: bctx } = { ctx: borderCanvas.getContext('2d') };
+        bctx.globalCompositeOperation = 'source-in';
+        bctx.fillStyle = els.borderColor.value;
+        bctx.fillRect(0, 0, baseW, baseH);
+        ctx.drawImage(borderCanvas, 0, 0);
+      }
+      state.compositeCanvas = comp;
+      return comp;
+    };
+
+    const resizeForPreview = (canvas, maxSide = 520) => {
+      const w = canvas.width, h = canvas.height;
+      const scale = Math.min(maxSide / Math.max(w, h), 1);
+      if (scale === 1) return canvas;
+      const { c, ctx } = getCanvas(Math.round(w * scale), Math.round(h * scale));
+      ctx.drawImage(canvas, 0, 0, c.width, c.height);
+      return c;
+    };
+
+    const flattenBackground = (canvas, bgColor) => {
+      const { c, ctx } = getCanvas(canvas.width, canvas.height);
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(canvas, 0, 0);
+      return c;
+    };
+
+    const readableOnColor = (hex) => {
+      const val = hex.replace('#', '');
+      if (val.length !== 6) return '#0b1021';
+      const r = parseInt(val.substring(0,2), 16);
+      const g = parseInt(val.substring(2,4), 16);
+      const b = parseInt(val.substring(4,6), 16);
+      const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+      return luminance > 160 ? '#0b1021' : '#f7f9ff';
+    };
+
+    const updateColorDisplays = () => {
+      const borderHex = (els.borderColor.value || '#000000').toUpperCase();
+      const bgHex = (els.bgColor.value || '#FFFFFF').toUpperCase();
+      if (els.borderColorValue) {
+        els.borderColorValue.textContent = borderHex;
+        els.borderColorValue.style.background = borderHex;
+        els.borderColorValue.style.borderColor = borderHex;
+        els.borderColorValue.style.color = readableOnColor(borderHex);
+      }
+      if (els.bgColorValue) {
+        els.bgColorValue.textContent = bgHex;
+        els.bgColorValue.style.background = bgHex;
+        els.bgColorValue.style.borderColor = bgHex;
+        els.bgColorValue.style.color = readableOnColor(bgHex);
+      }
+      if (els.borderColorOverlay) els.borderColorOverlay.style.color = readableOnColor(borderHex);
+      if (els.bgColorOverlay) els.bgColorOverlay.style.color = readableOnColor(bgHex);
+    };
+
+    const updatePreview = () => {
+      try {
+        const composed = compose();
+        const bgMode = els.bgMode.value;
+        const base = bgMode === 'color' ? flattenBackground(composed, els.bgColor.value) : composed;
+        const previewCanvas = resizeForPreview(base, 640);
+        const ctx = els.previewCanvas.getContext('2d');
+        els.previewCanvas.width = previewCanvas.width;
+        els.previewCanvas.height = previewCanvas.height;
+        ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+        ctx.drawImage(previewCanvas, 0, 0);
+        setStatus('预览已更新');
+      } catch (err) {
+        setStatus(err.message, true);
+      }
+    };
+
+    const download = async () => {
+      if (!state.compositeCanvas) {
+        try { compose(); }
+        catch (err) { setStatus(err.message, true); return; }
+      }
+      const bgMode = els.bgMode.value;
+      const format = els.exportFormat.value;
+      const supportsAlpha = format !== 'image/jpeg';
+      let exportCanvas = state.compositeCanvas;
+      if (bgMode === 'color' || !supportsAlpha) {
+        exportCanvas = flattenBackground(exportCanvas, els.bgColor.value);
+      }
+      exportCanvas.toBlob((blob) => {
+        if (!blob) { setStatus('导出失败', true); return; }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const ext = format === 'image/png' ? 'png' : format === 'image/webp' ? 'webp' : 'jpg';
+        a.download = `contour-fill.${ext}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        setStatus('已保存到本地');
+      }, format, format === 'image/jpeg' ? 0.95 : 0.92);
+    };
+
+    els.outlineInput.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        const outline = await loadImageFromFile(file);
+        state.outline = outline;
+        els.outlineName.textContent = `${outline.name} (${outline.width}×${outline.height})`;
+        updatePreview();
+      } catch (err) {
+        setStatus(err.message, true);
+      }
+    });
+
+    els.fillInput.addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files || []);
+      if (!files.length) return;
+      try {
+        const loaded = await Promise.all(files.map(loadImageFromFile));
+        state.fills.push(...loaded);
+        renderFillList();
+        updatePreview();
+      } catch (err) {
+        setStatus(err.message, true);
+      }
+    });
+
+    ['input', 'change'].forEach(evt => {
+      els.threshold.addEventListener(evt, () => {
+        els.thresholdValue.textContent = els.threshold.value;
+        updatePreview();
+      });
+      els.invert.addEventListener(evt, updatePreview);
+      els.fillMode.addEventListener(evt, updatePreview);
+      els.showBorder.addEventListener(evt, updatePreview);
+      els.borderWidth.addEventListener(evt, () => {
+        els.borderWidthValue.textContent = els.borderWidth.value;
+        updatePreview();
+      });
+      els.borderColor.addEventListener(evt, () => {
+        updateColorDisplays();
+        updatePreview();
+      });
+      els.bgMode.addEventListener(evt, updatePreview);
+      els.bgColor.addEventListener(evt, () => {
+        updateColorDisplays();
+        updatePreview();
+      });
+      els.exportFormat.addEventListener(evt, () => {});
+    });
+
+    els.previewBtn.addEventListener('click', updatePreview);
+    els.downloadBtn.addEventListener('click', download);
+
+    updateColorDisplays();
+    setStatus('等待加载图片…');
+  </script>
+</body>
+</html>
