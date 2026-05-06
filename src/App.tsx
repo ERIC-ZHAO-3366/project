@@ -62,20 +62,22 @@ export default function App() {
       </div>
 
       {/* Top Navigation Bar */}
-      <header className='fixed top-0 left-0 right-0 h-16 bg-white/70 dark:bg-[#161b22]/70 backdrop-blur-md border-b border-pink-100 dark:border-[#30363d] shadow-sm z-50 flex items-center justify-between px-6 md:px-12 transition-colors duration-300'>
-        <div className='hidden md:block text-xl md:text-2xl font-extrabold text-pink-500 drop-shadow-sm tracking-wider'>
+      <header className='fixed top-0 left-0 right-0 h-16 bg-white/70 dark:bg-[#161b22]/70 backdrop-blur-md border-b border-pink-100 dark:border-[#30363d] shadow-sm z-50 flex items-center justify-between px-4 md:px-12 transition-colors duration-300'>
+        <div className='text-lg md:text-2xl font-extrabold text-pink-500 drop-shadow-sm tracking-wider shrink-0'>
           <a href="/">{siteConfig.title}</a>
         </div>
-        <div className='flex items-center gap-6 md:gap-8 w-full md:w-auto justify-end md:justify-end'>
-          <nav className='flex items-center gap-6 md:gap-8'>
+        <div className='flex items-center gap-3 md:gap-8 justify-end w-full md:w-auto ml-3 md:ml-0 overflow-hidden'>
+          <nav className='flex items-center gap-3 md:gap-8 h-full overflow-x-auto hide-scrollbar shrink'>
             {navLinks.map((link, idx) => (
-              <a key={idx} href={link.url} className='text-gray-600 dark:text-gray-300 hover:text-pink-500 dark:hover:text-pink-400 font-bold transition-colors active:scale-95'>
+              <a key={idx} href={link.url} className='text-sm md:text-base whitespace-nowrap text-gray-600 dark:text-gray-300 hover:text-pink-500 dark:hover:text-pink-400 font-bold transition-colors active:scale-95'>
                 {link.name}
               </a>
             ))}
           </nav>
-          <div className='w-[1px] h-5 bg-pink-200 dark:bg-[#30363d]'></div>
-          <ThemeToggle />
+          <div className='hidden sm:block w-[1px] h-5 bg-pink-200 dark:bg-[#30363d] shrink-0'></div>
+          <div className='shrink-0'>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
