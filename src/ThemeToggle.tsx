@@ -10,17 +10,15 @@ export default function ThemeToggle() {
     }
   };
 
-  const [followSystem, setFollowSystem] = useState<boolean>(() => {
-    const t = getStored();
-    return t === null || t === 'auto';
-  });
-
   const [isDark, setIsDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     const t = getStored();
     if (t === 'dark') return true;
     if (t === 'light') return false;
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    // Auto toggle based on time (dark mode between 18:00 and 6:00)
+    const hour = new Date().getHours();
+    return hour >= 18 || hour < 6;
   });
 
   useEffect(() => {
@@ -31,53 +29,14 @@ export default function ThemeToggle() {
     }
 
     try {
-      if (followSystem) {
-        localStorage.setItem('theme', 'auto');
-      } else {
-        localStorage.setItem('theme', isDark ? 'dark' : 'light');
-      }
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
     } catch (e) {
       // ignore
     }
-  }, [isDark, followSystem]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = (e: MediaQueryListEvent | MediaQueryList) => {
-      if (followSystem) {
-        setIsDark(Boolean((e as any).matches));
-      }
-    };
-
-    // initial sync when switching to followSystem
-    if (followSystem) {
-      setIsDark(mq.matches);
-    }
-
-    if (typeof mq.addEventListener === 'function') {
-      mq.addEventListener('change', handler as any);
-    } else if (typeof (mq as any).addListener === 'function') {
-      (mq as any).addListener(handler);
-    }
-
-    return () => {
-      if (typeof mq.removeEventListener === 'function') {
-        mq.removeEventListener('change', handler as any);
-      } else if (typeof (mq as any).removeListener === 'function') {
-        (mq as any).removeListener(handler);
-      }
-    };
-  }, [followSystem]);
+  }, [isDark]);
 
   const handleMainToggle = () => {
-    if (followSystem) {
-      // Turn off follow system and flip to opposite of current effective
-      setFollowSystem(false);
-      setIsDark((d) => !d);
-    } else {
-      setIsDark((d) => !d);
-    }
+    setIsDark((d: boolean) => !d);
   };
 
   return (
@@ -111,16 +70,6 @@ export default function ThemeToggle() {
           }}
         />
       </button>
-
-      <label className="select-none text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
-        <input
-          type="checkbox"
-          checked={followSystem}
-          onChange={() => setFollowSystem((v) => !v)}
-          className="w-4 h-4 rounded"
-        />
-        <span className="hidden sm:inline">跟随系统</span>
-      </label>
     </div>
   );
 }
